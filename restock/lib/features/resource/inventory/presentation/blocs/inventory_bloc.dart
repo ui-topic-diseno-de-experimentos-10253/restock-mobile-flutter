@@ -25,7 +25,13 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     InventoryLoadRequested event,
     Emitter<InventoryState> emit,
   ) async {
-    emit(state.copyWith(loading: true, error: null));
+    // Limpiamos las listas al iniciar la carga para evitar ver datos del usuario anterior
+    emit(state.copyWith(
+      loading: true, 
+      error: null,
+      batches: [],
+      customSupplies: [],
+    ));
     try {
       final supplies = await repository.getSupplies();
       final customSupplies = await repository.getCustomSuppliesByUserId();

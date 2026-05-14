@@ -24,6 +24,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
   String description = '';
   String minStock = '';
   String maxStock = '';
+  String price = ''; // Añadimos el campo de precio
 
   // nombre, abreviatura
   final List<(String, String)> unitOptions = const [
@@ -44,6 +45,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       description = existing.description;
       minStock = existing.minStock.toString();
       maxStock = existing.maxStock.toString();
+      price = existing.price.toString(); // Inicializamos el precio
       selectedUnit = (existing.unit.name, existing.unit.abbreviation);
       selectedCategory = existing.supply?.category;
       // selectedSupplyId lo seteamos cuando tengamos la lista de supplies
@@ -189,6 +191,20 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                         TextSelection.collapsed(offset: maxStock.length),
                 ),
                 const SizedBox(height: 16),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Price',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) => price = v,
+                  controller: TextEditingController(text: price)
+                    ..selection = TextSelection.collapsed(
+                      offset: price.length,
+                    ),
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   'Unit',
                   style: TextStyle(fontWeight: FontWeight.w600),
@@ -228,22 +244,25 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                       if (selectedSupplyId == null ||
                           minStock.isEmpty ||
                           maxStock.isEmpty) {
-                        // TODO: mostrar snackbar de validación
+                        // TODO: mostrar snackbar de validación más específica
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please fill all required fields')),
+                        );
                         return;
                       }
 
                       final Supply? baseSupply = supplies.firstWhereOrNull(
                         (s) => s.id == selectedSupplyId,
                       );
-
+                      
                       if (baseSupply == null) return;
 
                       final custom = CustomSupply(
                         id: widget.existingSupply?.id ?? 0,
                         minStock: int.tryParse(minStock) ?? 0,
                         maxStock: int.tryParse(maxStock) ?? 0,
-                        price: widget.existingSupply?.price ?? 0.0,
-                        userId: widget.existingSupply?.userId,
+                        price: double.tryParse(price) ?? 0.0, // Usamos el precio del campo
+                        userId: widget.existingSupply?.userId ?? state.userId,
                         supplyId: baseSupply.id,
                         supply: baseSupply,
                         unit: UnitModel(name: selectedUnit.$1, abbreviation: selectedUnit.$2),

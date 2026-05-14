@@ -169,9 +169,17 @@ class _BatchFormPageState extends State<BatchFormPage> {
                               : expirationDate)
                           : '9999-12-31';
 
+                      final currentUserId = state.userId;
+                      if (currentUserId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('User session not found')),
+                        );
+                        return;
+                      }
+
                       final newBatch = Batch(
                         id: widget.existingBatch?.id ?? '',
-                        userId: widget.existingBatch?.userId ?? 1, // TODO real
+                        userId: widget.existingBatch?.userId ?? currentUserId,
                         userRoleId: widget.existingBatch?.userRoleId,
                         customSupply: selectedCustom!,
                         stock: double.tryParse(stock) ?? 0.0,
