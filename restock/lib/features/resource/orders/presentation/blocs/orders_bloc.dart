@@ -46,7 +46,12 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     Emitter<OrdersState> emit,
   ) async {
     print('BLoC: Loading orders for supplier $supplierId');
-    emit(state.copyWith(status: Status.loading, errorMessage: null));
+    // Limpiamos allOrders al iniciar para evitar que se muestren datos del usuario anterior
+    emit(state.copyWith(
+      status: Status.loading,
+      errorMessage: null,
+      allOrders: [], 
+    ));
 
     try {
       final List<Order> orders =

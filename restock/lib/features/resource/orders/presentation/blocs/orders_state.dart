@@ -72,6 +72,11 @@ class OrdersState {
   List<Order> get visibleOrders {
     Iterable<Order> result = allOrders;
 
+    // 0) Asegurar que solo vemos órdenes del proveedor actual
+    if (supplierId != null) {
+      result = result.where((o) => o.supplierId == supplierId);
+    }
+
     // 1) Filtrar por pestaña
     result = result.where((o) {
       switch (currentTab) {
@@ -80,8 +85,8 @@ class OrdersState {
         case OrdersTab.currentOrders:
           return o.situation == OrderSituation.approved && !o.state.isFinished;
         case OrdersTab.historyOrders:
-          // Solo mostrar delivered en history
-          return o.state == OrderState.delivered;
+          // Usar isFinished para incluir entregados, cancelados, etc.
+          return o.state.isFinished;
       }
     });
 
