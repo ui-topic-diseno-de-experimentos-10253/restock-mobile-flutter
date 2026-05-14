@@ -9,6 +9,7 @@ class InventoryState {
   final List<Batch> batches;
   final bool loading;
   final String? error;
+  final int? userId;
 
   const InventoryState({
     this.supplies = const [],
@@ -16,6 +17,7 @@ class InventoryState {
     this.batches = const [],
     this.loading = false,
     this.error,
+    this.userId,
   });
 
   InventoryState copyWith({
@@ -24,6 +26,7 @@ class InventoryState {
     List<Batch>? batches,
     bool? loading,
     String? error,
+    int? userId,
   }) {
     return InventoryState(
       supplies: supplies ?? this.supplies,
@@ -31,6 +34,7 @@ class InventoryState {
       batches: batches ?? this.batches,
       loading: loading ?? this.loading,
       error: error,
+      userId: userId ?? this.userId,
     );
   }
 }
