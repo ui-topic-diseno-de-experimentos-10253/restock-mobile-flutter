@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "480743832807",
+    "project_id": "restock-experimentos",
+    "storage_bucket": "restock-experimentos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480743832807:android:2b3b2b5cc8f7c1f2a5f642",
+        "android_client_info": {
+          "package_name": "com.uitopic.restockmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFxXK3uQL3L4KzHfbuZtj0wEKBGMbrcxg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
