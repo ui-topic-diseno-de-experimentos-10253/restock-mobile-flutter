@@ -1,6 +1,9 @@
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:restock/core/services/fcm_manager.dart';
+import 'package:restock/core/services/push_token_service.dart';
 import 'package:restock/features/alerts/data/remote/alert_service.dart';
 import 'package:restock/features/alerts/data/repositories/alert_repository_impl.dart';
 import 'package:restock/features/alerts/presentation/blocs/alert_bloc.dart';
@@ -17,7 +20,9 @@ import 'package:restock/features/home/presentation/pages/home_page.dart';
 import 'package:restock/features/resource/inventory/data/remote/inventory_service.dart';
 import 'package:restock/features/resource/inventory/data/repositories/inventory_repository_impl.dart';
 import 'package:restock/features/resource/inventory/presentation/blocs/inventory_bloc.dart';
+import 'package:restock/features/resource/inventory/presentation/pages/inventory_detail_page.dart';
 import 'package:restock/features/resource/inventory/presentation/pages/inventory_page.dart';
+import 'package:restock/features/resource/inventory/presentation/pages/supply_detail_by_id_page.dart';
 
 // SUBSCRIPTIONS
 import 'package:restock/features/subscriptions/data/remote/subscription_service.dart';
@@ -25,11 +30,26 @@ import 'package:restock/features/subscriptions/presentation/blocs/subscription_b
 import 'package:restock/features/subscriptions/presentation/pages/subscription_plans_page.dart';
 import 'package:restock/features/subscriptions/presentation/pages/payment_page.dart';
 
+/// Global navigator key – used by [FcmManager] to navigate from push notifications
+/// without requiring a BuildContext.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase before anything else.
+  await Firebase.initializeApp();
+
   final authService = AuthService();
   final authStorage = AuthStorage();
+  final pushTokenService = PushTokenService();
+
+  // Create and initialize the FCM manager.
+  final fcmManager = FcmManager(
+    pushTokenService: pushTokenService,
+    navigatorKey: navigatorKey,
+  );
+  await fcmManager.initialize();
 
   final inventoryService = InventoryService();
 
@@ -65,6 +85,7 @@ void main() async {
           create: (_) => LoginBloc(
             service: authService,
             storage: authStorage,
+            fcmManager: fcmManager,
           ),
         ),
         BlocProvider(
@@ -99,14 +120,28 @@ class RestockApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Restock',
+      navigatorKey: navigatorKey,
       initialRoute: '/login',
       routes: {
-        '/login': (_) => const LoginPage(),
-        '/home': (_) => const HomePage(),
-        '/inventory': (_) => const InventoryPage(),
+        '/login':         (_) => const LoginPage(),
+        '/home':          (_) => const HomePage(),
+        '/inventory':     (_) => const InventoryPage(),
         '/subscriptions': (_) => const SubscriptionPlansPage(),
-        '/payment': (_) => const PaymentPage(),
-        '/alerts': (_) => const AlertsPage(),
+        '/payment':       (_) => const PaymentPage(),
+        '/alerts':        (_) => const AlertsPage(),
+        // ── Deep-link routes from push notifications ──────────────────
+        '/inventory_detail': (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments
+              as Map<String, dynamic>?;
+          final batchId = args?['batchId'] as String? ?? '';
+          return InventoryDetailPage(batchId: batchId);
+        },
+        '/supply_detail_by_id': (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments
+              as Map<String, dynamic>?;
+          final customSupplyId = args?['customSupplyId'] as String? ?? '';
+          return SupplyDetailByIdPage(customSupplyId: customSupplyId);
+        },
       },
     );
   }
