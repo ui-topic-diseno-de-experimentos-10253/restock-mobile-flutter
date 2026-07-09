@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:restock/core/constants/api_constants.dart';
+import 'package:restock/features/auth/data/local/auth_storage.dart';
 import 'package:restock/features/resource/inventory/data/models/batch_dto.dart';
 import 'package:restock/features/resource/inventory/data/models/custom_supply_dto.dart';
 import 'package:restock/features/resource/inventory/data/models/custom_supply_request_dto.dart';
@@ -8,20 +9,26 @@ import 'package:restock/features/resource/inventory/data/models/supply_dto.dart'
 
 class InventoryService {
   final http.Client client;
+  final AuthStorage authStorage;
 
-  InventoryService({http.Client? client}) : client = client ?? http.Client();
+  InventoryService({http.Client? client, AuthStorage? authStorage})
+      : client = client ?? http.Client(),
+        authStorage = authStorage ?? AuthStorage();
 
   // helpers
   Uri _uri(String path) => Uri.parse('${ApiConstants.baseUrl}/$path');
 
-  Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        // aquí luego puedes agregar Authorization si usas token:
-        // 'Authorization': 'Bearer $token',
-      };
+  Future<Map<String, String>> _headers() async {
+    final token = await authStorage.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   Future<List<SupplyDto>> getSupplies() async {
-    final response = await client.get(_uri('supplies'), headers: _headers());
+    final headers = await _headers();
+    final response = await client.get(_uri('supplies'), headers: headers);
 
     if (response.statusCode == 200) {
       final List jsonList = jsonDecode(response.body);
@@ -31,8 +38,9 @@ class InventoryService {
   }
 
   Future<List<CustomSupplyDto>> getCustomSupplies() async {
+    final headers = await _headers();
     final response =
-        await client.get(_uri('custom-supplies'), headers: _headers());
+        await client.get(_uri('custom-supplies'), headers: headers);
 
     if (response.statusCode == 200) {
       final List jsonList = jsonDecode(response.body);
@@ -42,9 +50,10 @@ class InventoryService {
   }
 
   Future<List<CustomSupplyDto>> getCustomSuppliesByUserId(int userId) async {
+    final headers = await _headers();
     final response = await client.get(
       _uri('custom-supplies/user/$userId'),
-      headers: _headers(),
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -52,11 +61,13 @@ class InventoryService {
       return jsonList.map((e) => CustomSupplyDto.fromJson(e)).toList();
     }
     throw Exception(
-        'Failed to load custom supplies by user (${response.statusCode})');
+      'Failed to load custom supplies by user (${response.statusCode})',
+    );
   }
 
   Future<List<BatchDto>> getBatches() async {
-    final response = await client.get(_uri('batches'), headers: _headers());
+    final headers = await _headers();
+    final response = await client.get(_uri('batches'), headers: headers);
 
     if (response.statusCode == 200) {
       final List jsonList = jsonDecode(response.body);
@@ -66,21 +77,24 @@ class InventoryService {
   }
 
   Future<List<BatchDto>> getBatchesByUserId(int userId) async {
+    final headers = await _headers();
     final response =
-        await client.get(_uri('batches/user/$userId'), headers: _headers());
+        await client.get(_uri('batches/user/$userId'), headers: headers);
 
     if (response.statusCode == 200) {
       final List jsonList = jsonDecode(response.body);
       return jsonList.map((e) => BatchDto.fromJson(e)).toList();
     }
     throw Exception(
-        'Failed to load batches by user (${response.statusCode})');
+      'Failed to load batches by user (${response.statusCode})',
+    );
   }
 
   Future<BatchDto?> createBatch(BatchDto dto) async {
+    final headers = await _headers();
     final response = await client.post(
       _uri('batches'),
-      headers: _headers(),
+      headers: headers,
       body: jsonEncode(dto.toJson()),
     );
 
@@ -91,9 +105,10 @@ class InventoryService {
   }
 
   Future<BatchDto?> updateBatch(String id, BatchDto dto) async {
+    final headers = await _headers();
     final response = await client.put(
       _uri('batches/$id'),
-      headers: _headers(),
+      headers: headers,
       body: jsonEncode(dto.toJson()),
     );
 
@@ -104,14 +119,17 @@ class InventoryService {
   }
 
   Future<void> deleteBatch(String id) async {
-    await client.delete(_uri('batches/$id'), headers: _headers());
+    final headers = await _headers();
+    await client.delete(_uri('batches/$id'), headers: headers);
   }
 
   Future<CustomSupplyDto?> createCustomSupply(
-      CustomSupplyRequestDto dto) async {
+    CustomSupplyRequestDto dto,
+  ) async {
+    final headers = await _headers();
     final response = await client.post(
       _uri('custom-supplies'),
-      headers: _headers(),
+      headers: headers,
       body: jsonEncode(dto.toJson()),
     );
 
@@ -125,9 +143,10 @@ class InventoryService {
     int id,
     CustomSupplyRequestDto dto,
   ) async {
+    final headers = await _headers();
     final response = await client.put(
       _uri('custom-supplies/$id'),
-      headers: _headers(),
+      headers: headers,
       body: jsonEncode(dto.toJson()),
     );
 
@@ -138,9 +157,11 @@ class InventoryService {
   }
 
   Future<void> deleteCustomSupply(int id) async {
+    final headers = await _headers();
     await client.delete(
       _uri('custom-supplies/$id'),
-      headers: _headers(),
+      headers: headers,
     );
   }
 }
+

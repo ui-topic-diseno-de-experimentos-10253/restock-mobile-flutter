@@ -34,8 +34,8 @@ class CustomSupplyDto {
       supply:
           json['supply'] != null ? SupplyDto.fromJson(json['supply']) : null,
       description: json['description'],
-      minStock: json['minStock'],
-      maxStock: json['maxStock'],
+      minStock: (json['minStock'] as num?)?.toInt(),
+      maxStock: (json['maxStock'] as num?)?.toInt(),
       price: (json['price'] as num?)?.toDouble(),
       userId: json['userId'],
       unitName: json['unitName'],

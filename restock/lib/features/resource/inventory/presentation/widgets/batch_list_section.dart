@@ -19,150 +19,226 @@ class BatchListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final greenColor = const Color(0xFF4F8A5B);
-    final redColor = const Color(0xFFD9534F);
-    final grayColor = const Color(0xFF9E9E9E);
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+    const alertRed = Color(0xFFE53935);
+    const alertOrange = Color(0xFFFB8C00);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Inventory (Batches)',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        Text(
+          'Inventory Batches / Lots',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
-        // Buscador
+        // Search Field
         TextField(
+          onChanged: onSearchChange,
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.search),
-            hintText: 'Search supply or batch...',
-            border: OutlineInputBorder(),
+            hintText: 'Search products or batch ID...',
           ),
-          onChanged: onSearchChange,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
 
-        // Importante: SIN Expanded, para que funcione dentro de SingleChildScrollView
-        ListView.separated(
-          itemCount: batches.length,
-          shrinkWrap: shrinkWrap, // 👈 clave cuando está dentro de scroll padre
-          physics: shrinkWrap
-              ? const NeverScrollableScrollPhysics()
-              : const AlwaysScrollableScrollPhysics(),
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final batch = batches[index];
-            final supply = batch.customSupply?.supply;
-            final isNonPerishable = batch.expirationDate == '9999-12-31';
-            final isPerishable = supply?.perishable == true;
+        if (batches.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withOpacity(0.04)),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.layers_clear_outlined, size: 40, color: primaryColor.withOpacity(0.4)),
+                const SizedBox(height: 12),
+                Text(
+                  'No batches registered',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                ),
+              ],
+            ),
+          )
+        else
+          ListView.separated(
+            itemCount: batches.length,
+            shrinkWrap: shrinkWrap,
+            physics: shrinkWrap
+                ? const NeverScrollableScrollPhysics()
+                : const AlwaysScrollableScrollPhysics(),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final batch = batches[index];
+              final supply = batch.customSupply?.supply;
+              final isNonPerishable = batch.expirationDate == '9999-12-31';
+              final isPerishable = supply?.perishable == true;
 
-            return Card(
-              color: const Color(0xFFF8F8F8),
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
+              // Check if expiring soon (e.g., in 7 days or less)
+              bool isExpiringSoon = false;
+              int daysToExpire = 999;
+              if (batch.expirationDate != null && !isNonPerishable) {
+                try {
+                  final expDate = DateTime.parse(batch.expirationDate!);
+                  final difference = expDate.difference(DateTime.now()).inDays;
+                  daysToExpire = difference;
+                  if (difference >= 0 && difference <= 7) {
+                    isExpiringSoon = true;
+                  }
+                } catch (_) {}
+              }
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black.withOpacity(0.05)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.01),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                supply?.name ?? 'No name',
-                                style: const TextStyle(
+                                supply?.name ?? 'Unnamed Batch Product',
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Batch ID: #${batch.id.substring(0, batch.id.length > 8 ? 8 : batch.id.length)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.black45,
+                                  fontFamily: 'monospace',
                                 ),
                               ),
-                              if (isNonPerishable)
-                                Text(
-                                  'Non-perishable',
-                                  style: TextStyle(
-                                    color: greenColor,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              else if (isPerishable)
-                                Text(
-                                  'Perishable',
-                                  style: TextStyle(
-                                    color: redColor,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
                             ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => onBatchClick(batch.id),
-                          icon: Icon(Icons.remove_red_eye, color: greenColor),
+                        Container(
+                          height: 36,
+                          width: 36,
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () => onBatchClick(batch.id),
+                            icon: Icon(Icons.edit_outlined, size: 18, color: primaryColor),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 12),
+                    
+                    // Stats Row
                     Row(
                       children: [
+                        Icon(Icons.inventory_outlined, size: 16, color: primaryColor),
+                        const SizedBox(width: 6),
                         Text(
-                          'Stock: ${batch.stock}',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          'Stock: ',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
                         ),
-                        const SizedBox(width: 12),
-                        if (batch.customSupply != null) ...[
-                          Text(
-                            'Min: ${batch.customSupply!.minStock}',
-                            style: TextStyle(
-                              color: grayColor,
-                              fontSize: 12,
-                            ),
+                        Text(
+                          '${batch.stock} ${batch.customSupply?.unit.abbreviation ?? ""}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Max: ${batch.customSupply!.maxStock}',
-                            style: TextStyle(
-                              color: grayColor,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    if (batch.customSupply != null)
-                      Text(
-                        'Unit: ${batch.customSupply!.unit.name}',
-                        style: TextStyle(color: grayColor, fontSize: 12),
-                      ),
-                    const SizedBox(height: 4),
+                    
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: Color(0xFFF1F1F1)),
+                    const SizedBox(height: 10),
+
+                    // Footer with Expiration Tags
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          supply?.category ?? '-',
-                          style: TextStyle(color: grayColor, fontSize: 12),
+                          supply?.category ?? 'General',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.black45,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        Text(
-                          isNonPerishable
-                              ? 'Non-perishable'
-                              : 'Expires: ${batch.expirationDate ?? '-'}',
-                          style: TextStyle(
-                            color: isNonPerishable ? greenColor : redColor,
-                            fontSize: 12,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isNonPerishable
+                                ? primaryColor.withOpacity(0.08)
+                                : isExpiringSoon
+                                    ? alertRed.withOpacity(0.08)
+                                    : alertOrange.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isNonPerishable
+                                    ? Icons.check_circle_outline
+                                    : Icons.timer_outlined,
+                                size: 14,
+                                color: isNonPerishable
+                                    ? primaryColor
+                                    : isExpiringSoon
+                                        ? alertRed
+                                        : alertOrange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isNonPerishable
+                                    ? 'Non-perishable'
+                                    : isExpiringSoon
+                                        ? 'Expiring soon (${daysToExpire}d)'
+                                        : 'Expires: ${batch.expirationDate}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isNonPerishable
+                                      ? primaryColor
+                                      : isExpiringSoon
+                                          ? alertRed
+                                          : alertOrange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          ),
       ],
     );
   }

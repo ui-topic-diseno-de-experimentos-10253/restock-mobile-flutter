@@ -1,8 +1,8 @@
 // lib/core/constants/api_constants.dart
 class ApiConstants {
   // Base
-  static const String baseUrl = 'https://restock-platform-10253.onrender.com/api/v1';
-  //static const String baseUrl = 'http://10.0.2.2:8080/api/v1';
+  // static const String baseUrl = 'https://restock-platform-10253.onrender.com/api/v1';
+  static const String baseUrl = 'http://10.0.2.2:8080/api/v1';
   // -------------------------
   // AUTHENTICATION
   // -------------------------
@@ -109,4 +109,13 @@ class ApiConstants {
   static const String subscriptionsEndpoint = '/subscriptions';
   static String subscriptionByUserId(int userId) =>
       '/subscriptions/user/$userId';
+
+  // -------------------------
+  // PUSH NOTIFICATIONS
+  // -------------------------
+  static const String pushTokenEndpoint = '/mobile/push-token';
+  static String pushNotificationCandidates(int userId) =>
+      '/inventory/users/$userId/push-notifications-candidates';
+  static String pushNotificationDispatch(int userId) =>
+      '/inventory/users/$userId/push-notifications/dispatch';
 }
