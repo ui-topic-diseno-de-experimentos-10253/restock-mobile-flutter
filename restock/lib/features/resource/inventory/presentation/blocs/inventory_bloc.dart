@@ -2,6 +2,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:restock/features/resource/inventory/domain/repositories/inventory_repository.dart';
 
+import 'package:restock/features/auth/data/local/auth_storage.dart';
 import 'inventory_event.dart';
 import 'inventory_state.dart';
 
@@ -33,6 +34,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       customSupplies: [],
     ));
     try {
+      final userId = await AuthStorage().getUserId();
       final supplies = await repository.getSupplies();
       final customSupplies = await repository.getCustomSuppliesByUserId();
       final batches = await repository.getBatchesByUserId();
@@ -43,6 +45,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
           customSupplies: customSupplies,
           batches: batches,
           loading: false,
+          userId: userId,
         ),
       );
     } catch (e) {
