@@ -16,27 +16,61 @@ class QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withOpacity(0.04), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 36, color: Colors.green.shade700),
-              const SizedBox(height: 12),
-              Text(title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  )),
+              // Icon Badge
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: 28,
+                  color: primaryColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Text Content
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.2,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
-              )
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
             ],
           ),
         ),

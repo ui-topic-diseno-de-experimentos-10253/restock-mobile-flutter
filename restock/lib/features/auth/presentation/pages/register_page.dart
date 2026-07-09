@@ -25,11 +25,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
     return Scaffold(
       body: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) {
           if (state.status == Status.success) {
-            // Navigate to initial profile configuration
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -45,81 +47,157 @@ class _RegisterPageState extends State<RegisterPage> {
             );
           } else if (state.status == Status.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Error desconocido')),
+              SnackBar(
+                content: Text(state.message ?? 'Unknown error'),
+                backgroundColor: Colors.redAccent,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             );
           }
         },
         child: Stack(
           children: [
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Create Your Restock Account',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: primaryGreen,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-
-                    TextField(
-                      onChanged: (v) => context
-                          .read<RegisterBloc>()
-                          .add(OnUsernameChanged(username: v)),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Username',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    TextField(
-                      onChanged: (v) => context
-                          .read<RegisterBloc>()
-                          .add(OnPasswordChangedRegister(password: v)),
-                      obscureText: !_isPasswordVisible,
-                      decoration: InputDecoration(
-                        border: const OutlineInputBorder(),
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          onPressed: () =>
-                              setState(() => _isPasswordVisible = !_isPasswordVisible),
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                        ),
-                        onPressed: () => context
-                            .read<RegisterBloc>()
-                            .add(const RegisterSubmitted()),
-                        child: const Text('Create Account'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Already have an account? Log in'),
-                    ),
+            // Gradient Background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    primaryColor.withOpacity(0.08),
+                    theme.scaffoldBackgroundColor,
                   ],
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 28.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Supplier Icon Badge
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.local_shipping_outlined,
+                          size: 54,
+                          color: primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      
+                      // Titles
+                      Text(
+                        'Restock Suppliers',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: primaryColor,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Join Restock to manage your orders & stock',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 36),
+
+                      // Card Form
+                      Card(
+                        elevation: 4,
+                        shadowColor: Colors.black12,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Register Account',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              TextField(
+                                onChanged: (v) => context
+                                    .read<RegisterBloc>()
+                                    .add(OnUsernameChanged(username: v)),
+                                decoration: const InputDecoration(
+                                  labelText: 'Username',
+                                  prefixIcon: Icon(Icons.person_outline),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              TextField(
+                                onChanged: (v) => context
+                                    .read<RegisterBloc>()
+                                    .add(OnPasswordChangedRegister(password: v)),
+                                obscureText: !_isPasswordVisible,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                    onPressed: () =>
+                                        setState(() => _isPasswordVisible = !_isPasswordVisible),
+                                    icon: Icon(
+                                      _isPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              SizedBox(
+                                height: 50,
+                                child: ElevatedButton(
+                                  onPressed: () => context
+                                      .read<RegisterBloc>()
+                                      .add(const RegisterSubmitted()),
+                                  child: const Text('Create Account'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Already have an account? Sign In',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -12,36 +12,14 @@ import 'package:restock/features/profiles/presentation/blocs/profile_state.dart'
 import 'package:restock/features/profiles/presentation/pages/profile_detail_screen.dart';
 import 'package:restock/features/resource/inventory/presentation/blocs/inventory_bloc.dart';
 import 'package:restock/features/resource/inventory/presentation/blocs/inventory_event.dart';
+import 'package:restock/features/resource/inventory/presentation/blocs/inventory_state.dart';
 import 'package:restock/features/resource/orders/data/remote/orders_service.dart';
 import 'package:restock/features/resource/orders/data/repositories/orders_repository_impl.dart';
 import 'package:restock/features/resource/orders/presentation/pages/orders_page.dart';
 import 'package:restock/features/resource/orders/presentation/pages/supplier_orders_page.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  late final ProfileBloc _profileBloc;
-
-  @override
-  void initState() {
-    super.initState();
-    _profileBloc = ProfileBloc(
-      service: ProfileService(),
-      storage: AuthStorage(),
-      cloudinaryService: CloudinaryService(),
-    )..add(const LoadProfile());
-  }
-
-  @override
-  void dispose() {
-    _profileBloc.close();
-    super.dispose();
-  }
 
   void _goPlaceholder(BuildContext context, String title) {
     Navigator.push(
@@ -51,26 +29,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _navigateToProfile(BuildContext context) async {
+    final profileBloc = context.read<ProfileBloc>();
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
-          value: _profileBloc,
+          value: profileBloc,
           child: const ProfileDetailScreen(),
         ),
       ),
     );
-    // Reload profile when returning from profile screen
-    if (mounted) {
-      _profileBloc.add(const LoadProfile());
-    }
+    profileBloc.add(const LoadProfile());
   }
 
   Future<void> _goToOrders(BuildContext context) async {
     final authStorage = AuthStorage();
-    final supplierId = await authStorage.getUserId(); // o el método que uses
-  
-    if (!mounted) return;
+    final supplierId = await authStorage.getUserId();
   
     if (supplierId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,293 +57,313 @@ class _HomePageState extends State<HomePage> {
       service: OrdersService(),
     );
   
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SupplierOrdersPage(
-          repository: ordersRepository,
-          supplierId: supplierId,
-        ),
-      ),
-    );
-  }
-  
-
-  @override
-  Widget build(BuildContext context) {
-    const primaryGreen = Color.fromRGBO(92, 164, 104, 1);
-
-    return BlocProvider.value(
-      value: _profileBloc,
-      child: Scaffold(
-        drawer: Drawer(
-          child: Column(
-            children: [
-              DrawerHeader(
-                decoration: const BoxDecoration(
-                  color: Color.fromARGB(255, 255, 255, 255),
-                ),
-                child: Center(
-                  child: Image.asset(
-                    'assets/icon/app_icon.png',
-                    width: 140, // ajusta el tamaño según necesites
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-
-              // INVENTORY -> va a la ruta real
-              ListTile(
-                leading: const Icon(Icons.inventory),
-                title: const Text("Inventory"),
-                onTap: () {
-                  Navigator.pop(context); // cierra drawer
-                  Navigator.pushNamed(context, '/inventory');
-                },
-              ),
-
-            // Otras opciones siguen con placeholder
-            ListTile(
-              leading: const Icon(Icons.shopping_cart),
-              title: const Text("Orders"),
-              onTap: () {
-                Navigator.pop(context);
-                _goToOrders(context);
-              },
-            ),
-
-              ListTile(
-                leading: const Icon(Icons.account_circle),
-                title: const Text("Profile"),
-                onTap: () {
-                  Navigator.pop(context); // cierra drawer
-                  _navigateToProfile(context);
-                },
-              ),
-
-              const Spacer(),
-
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text(
-                  "Logout",
-                  style: TextStyle(color: Colors.red),
-                ),
-                onTap: () async {
-                  await AuthStorage().clear(); // borra userId y token
-
-                  context.read<InventoryBloc>().add(
-                    const InventoryClearRequested(),
-                  ); // limpiamos el estado
-
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    "/login",
-                    (_) => false,
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SupplierOrdersPage(
+            repository: ordersRepository,
+            supplierId: supplierId,
           ),
         ),
-        appBar: AppBar(
-          title: const Text("Restock"),
-          centerTitle: true,
-          backgroundColor: primaryGreen,
-          foregroundColor: Colors.white,
-          actions: [
-            Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.account_circle),
-                onPressed: () => _navigateToProfile(context),
-                tooltip: 'Profile',
-              ),
-            ),
-          ],
+      );
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          "RESTOCK SUPPLIERS",
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            color: primaryColor,
+            letterSpacing: 1.2,
+          ),
         ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => _navigateToProfile(context),
+          ),
+        ],
+      ),
         body: BlocBuilder<ProfileBloc, ProfileState>(
           builder: (context, profileState) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
+            // Determine custom time-based greeting
+            final hour = DateTime.now().hour;
+            final greeting = hour < 12
+                ? "Good morning"
+                : hour < 18
+                    ? "Good afternoon"
+                    : "Good evening";
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Avatar and Welcome Message
-                  Row(
-                    children: [
-                      // Avatar
-                      GestureDetector(
-                        onTap: () => _navigateToProfile(context),
-                        child: Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: profileState.profile?.avatar != null
-                                ? Colors.grey.shade200
-                                : primaryGreen.withValues(alpha: 0.2),
-                            border: Border.all(color: primaryGreen, width: 2),
-                          ),
-                          child:
-                              profileState.profile?.avatar != null &&
-                                  profileState.profile!.avatar!.isNotEmpty
-                              ? ClipOval(
-                                  child: Image.network(
-                                    profileState.profile!.avatar!,
-                                    width: 56,
-                                    height: 56,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return _buildInitialsAvatar(
+                  // User Welcome Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Avatar
+                        GestureDetector(
+                          onTap: () => _navigateToProfile(context),
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [primaryColor, primaryColor.withOpacity(0.7)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primaryColor.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: profileState.profile?.avatar != null &&
+                                    profileState.profile!.avatar!.isNotEmpty
+                                ? ClipOval(
+                                    child: Image.network(
+                                      profileState.profile!.avatar!,
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          _buildInitialsAvatar(
                                         profileState.profile?.firstName ?? '',
                                         profileState.profile?.lastName ?? '',
-                                      );
-                                    },
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
-                                            return child;
-                                          return const Center(
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          );
-                                        },
+                                      ),
+                                    ),
+                                  )
+                                : _buildInitialsAvatar(
+                                    profileState.profile?.firstName ?? '',
+                                    profileState.profile?.lastName ?? '',
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Welcome Text
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "$greeting,",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              if (profileState.status == Status.loading &&
+                                  profileState.profile == null)
+                                Container(
+                                  height: 24,
+                                  width: 120,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
                                 )
-                              : _buildInitialsAvatar(
-                                  profileState.profile?.firstName ?? '',
-                                  profileState.profile?.lastName ?? '',
+                              else
+                                Text(
+                                  profileState.profile?.firstName ?? "Supplier Partner",
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: primaryColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Welcome Text
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Welcome back,",
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(color: Colors.black54),
-                            ),
-                            if (profileState.status == Status.loading &&
-                                profileState.profile == null)
-                              Container(
-                                height: 32,
-                                width: 150,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              )
-                            else
-                              Text(
-                                profileState.profile?.firstName ?? "Supplier",
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: primaryGreen,
-                                    ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
+
+                  // Section Title
+                  Text(
+                    "Quick Operations",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Quick Actions Grid
                   Row(
                     children: [
                       Expanded(
                         child: QuickActionCard(
-                          icon: Icons.inventory,
-                          title: "Inventory",
-                          subtitle: "Track supplies",
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/inventory'),
+                          icon: Icons.inventory_2_outlined,
+                          title: "Catalog",
+                          subtitle: "Custom supplies",
+                          onTap: () => Navigator.pushNamed(context, '/inventory'),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                       child: QuickActionCard(
-                         icon: Icons.shopping_cart,
-                         title: "Orders",
-                         subtitle: "Manage orders",
-                         onTap: () => _goToOrders(context),
-                       ),
+                        child: QuickActionCard(
+                          icon: Icons.shopping_bag_outlined,
+                          title: "Orders",
+                          subtitle: "Manage requests",
+                          onTap: () => _goToOrders(context),
+                        ),
                       ),
                     ],
                   ),
-                  // Espacio vertical entre filas
                   const SizedBox(height: 16),
 
-                  // 2. SEGUNDA FILA DE ACCIONES RÁPIDAS (Alerts)
                   Row(
                     children: [
                       Expanded(
                         child: QuickActionCard(
-                          // Ícono apropiado para Alertas/Notificaciones
-                          icon: Icons.notifications_active,
+                          icon: Icons.notifications_none_outlined,
                           title: "Alerts",
-                          subtitle: "View pending issues",
-                          // Usamos la ruta que definimos antes
+                          subtitle: "Critical events",
                           onTap: () => Navigator.pushNamed(context, '/alerts'),
                         ),
                       ),
-                      // Rellenar el espacio restante con un widget vacío (o una tarjeta de suscripción/placeholder)
                       const SizedBox(width: 16),
-                      const Expanded(
-                        child: SizedBox.shrink(), // Deja este espacio vacío
+                      Expanded(
+                        child: QuickActionCard(
+                          icon: Icons.card_membership_outlined,
+                          title: "Subscription",
+                          subtitle: "View current plan",
+                          onTap: () => Navigator.pushNamed(context, '/subscriptions'),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                  const SizedBox(height: 28),
+
+                  // Live Insights Section (Bloc Integration)
+                  Text(
+                    "Insights Overview",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                    color: Colors.green.shade50,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Your Business",
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              Icon(
-                                Icons.trending_up,
-                                color: Colors.green.shade700,
-                              ),
-                            ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  BlocBuilder<InventoryBloc, InventoryState>(
+                    builder: (context, invState) {
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [primaryColor.withOpacity(0.04), primaryColor.withOpacity(0.08)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Start managing your store, inventory and sales to see insights here.",
-                            style: TextStyle(color: Colors.black54),
-                          ),
-                        ],
-                      ),
-                    ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: primaryColor.withOpacity(0.12)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Active Inventory Stats",
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                Icon(Icons.analytics_outlined, color: primaryColor),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildStatItem(
+                                  theme,
+                                  "${invState.customSupplies.length}",
+                                  "Products",
+                                  Icons.apps_outlined,
+                                ),
+                                Container(
+                                  height: 40,
+                                  width: 1,
+                                  color: primaryColor.withOpacity(0.2),
+                                ),
+                                _buildStatItem(
+                                  theme,
+                                  "${invState.batches.length}",
+                                  "Active Batches",
+                                  Icons.layers_outlined,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             );
           },
         ),
-      ),
+    );
+  }
+
+  Widget _buildStatItem(ThemeData theme, String value, String label, IconData icon) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: theme.colorScheme.primary.withOpacity(0.7)),
+            const SizedBox(width: 6),
+            Text(
+              value,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
@@ -384,7 +378,7 @@ class _HomePageState extends State<HomePage> {
         style: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF1B5E20),
+          color: Colors.white,
         ),
       ),
     );
